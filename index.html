@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRIAM ガチャ回数計算＆管理ツール</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: M PLUS Rounded 1c & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"M PLUS Rounded 1c"', '"Inter"', 'sans-serif'],
+                    },
+                    colors: {
+                        iriam: {
+                            pink: '#FF4B91',
+                            lightPink: '#FFE5F0',
+                            blue: '#00C2FF',
+                            lightBlue: '#E0F7FF',
+                            purple: '#9B51E0',
+                            yellow: '#FFB800',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #FFF5F9 0%, #F0F9FF 100%);
+            min-height: 100vh;
+        }
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+        .pop-in {
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.95) translateY(8px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        /* デフォルメイラスト用のふわふわアニメーション */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(var(--rot, 0deg)); }
+            50% { transform: translateY(-8px) rotate(calc(var(--rot, 0deg) + 4deg)); }
+        }
+        .illust-float {
+            animation: floatSlow 4.5s ease-in-out infinite;
+        }
+        .illust-float-delay {
+            animation: floatSlow 5.2s ease-in-out 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased pb-12 relative overflow-x-hidden">
+
+    <!-- 背景に散りばめたデフォルメイラスト5種（操作の邪魔にならないよう pointer-events-none を設定） -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+        
+        <!-- 1. 左上：赤い女王 -->
+        <div class="absolute top-16 left-1 sm:left-6 w-24 h-24 sm:w-32 sm:h-32 opacity-80 illust-float" style="--rot: -8deg;">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- 後ろ髪（ボリューム縦ロール） -->
+                <circle cx="34" cy="64" r="13" fill="#DC2626" stroke="#7F1D1D" stroke-width="3"/>
+                <circle cx="86" cy="64" r="13" fill="#DC2626" stroke="#7F1D1D" stroke-width="3"/>
+                <circle cx="31" cy="79" r="10" fill="#B91C1C" stroke="#7F1D1D" stroke-width="3"/>
+                <circle cx="89" cy="79" r="10" fill="#B91C1C" stroke="#7F1D1D" stroke-width="3"/>
+                <!-- 赤いドレス体 -->
+                <path d="M40 76L30 105H90L80 76H40Z" fill="#EF4444" stroke="#7F1D1D" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M52 76L60 92L68 76" fill="#FFFFFF" stroke="#7F1D1D" stroke-width="2.5" stroke-linejoin="round"/>
+                <!-- ハートのブローチ -->
+                <path d="M60 87C60 87 55 83 55 80C55 78.5 56.5 77.5 58 78C59 78.5 59.5 79.5 60 80C60.5 79.5 61 78.5 62 78C63.5 77.5 65 78.5 65 80C65 83 60 87 60 87Z" fill="#FACC15"/>
+                <!-- 顔 -->
+                <circle cx="60" cy="54" r="22" fill="#FFF1F2" stroke="#7F1D1D" stroke-width="3"/>
+                <!-- 前髪 -->
+                <path d="M38 52C40 36 52 32 60 32C68 32 80 36 82 52C76 44 68 42 60 46C52 42 44 44 38 52Z" fill="#DC2626" stroke="#7F1D1D" stroke-width="3" stroke-linejoin="round"/>
+                <!-- おめめ＆ほっぺ -->
+                <circle cx="51" cy="56" r="3" fill="#450A0A"/>
+                <circle cx="69" cy="56" r="3" fill="#450A0A"/>
+                <ellipse cx="46" cy="61" rx="3.5" ry="2" fill="#FDA4AF"/>
+                <ellipse cx="74" cy="61" rx="3.5" ry="2" fill="#FDA4AF"/>
+                <!-- おすまし口 -->
+                <path d="M57 63Q60 65 63 63" stroke="#7F1D1D" stroke-width="2" stroke-linecap="round"/>
+                <!-- 金の王冠 -->
+                <path d="M47 32L50 18L56 26L60 15L64 26L70 18L73 32H47Z" fill="#FACC15" stroke="#B45309" stroke-width="2.5" stroke-linejoin="round"/>
+                <circle cx="60" cy="25" r="2" fill="#EF4444"/>
+            </svg>
+        </div>
+
+        <!-- 2. 右上：幻獣（ねこ） -->
+        <div class="absolute top-16 right-1 sm:right-6 w-24 h-24 sm:w-32 sm:h-32 opacity-80 illust-float-delay" style="--rot: 10deg;">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- 天使の羽根 -->
+                <path d="M36 66C20 56 14 68 24 76C18 82 26 88 36 80" fill="#E0F2FE" stroke="#0284C7" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M84 66C100 56 106 68 96 76C102 82 94 88 84 80" fill="#E0F2FE" stroke="#0284C7" stroke-width="2.5" stroke-linejoin="round"/>
+                <!-- 二又のしっぽ -->
+                <path d="M76 92C92 94 102 84 96 74" stroke="#7E22CE" stroke-width="4" stroke-linecap="round"/>
+                <path d="M74 96C88 104 102 98 100 88" stroke="#A855F7" stroke-width="4" stroke-linecap="round"/>
+                <!-- ぷっくり体 -->
+                <ellipse cx="60" cy="82" rx="20" ry="18" fill="#F3E8FF" stroke="#6B21A8" stroke-width="3"/>
+                <!-- 猫耳 -->
+                <path d="M38 44L35 22L53 35Z" fill="#F3E8FF" stroke="#6B21A8" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M82 44L85 22L67 35Z" fill="#F3E8FF" stroke="#6B21A8" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M40 40L39 28L49 36Z" fill="#F472B6"/>
+                <path d="M80 40L81 28L71 36Z" fill="#F472B6"/>
+                <!-- 顔 -->
+                <ellipse cx="60" cy="52" rx="24" ry="20" fill="#FAF5FF" stroke="#6B21A8" stroke-width="3"/>
+                <!-- 額の幻獣クリスタル -->
+                <path d="M60 36L64 42L60 48L56 42Z" fill="#38BDF8" stroke="#0369A1" stroke-width="1.5"/>
+                <!-- おめめ＆猫口 -->
+                <circle cx="49" cy="54" r="3.5" fill="#4C1D95"/>
+                <circle cx="71" cy="54" r="3.5" fill="#4C1D95"/>
+                <circle cx="50" cy="53" r="1.2" fill="#FFFFFF"/>
+                <circle cx="72" cy="53" r="1.2" fill="#FFFFFF"/>
+                <path d="M55 60Q57.5 63 60 60Q62.5 63 65 60" stroke="#6B21A8" stroke-width="2" stroke-linecap="round"/>
+                <!-- キラキラ星アクセント -->
+                <path d="M26 36L28 41L33 43L28 45L26 50L24 45L19 43L24 41Z" fill="#FACC15"/>
+            </svg>
+        </div>
+
+        <!-- 3. 左中段：男性のパティシエ -->
+        <div class="absolute top-[45%] -left-2 sm:left-4 w-24 h-24 sm:w-28 sm:h-28 opacity-75 illust-float-delay" style="--rot: -6deg;">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- コック服（体） -->
+                <path d="M38 76L33 105H87L82 76H38Z" fill="#FFFFFF" stroke="#475569" stroke-width="3" stroke-linejoin="round"/>
+                <!-- ダブルボタン -->
+                <circle cx="54" cy="87" r="2" fill="#94A3B8"/>
+                <circle cx="66" cy="87" r="2" fill="#94A3B8"/>
+                <circle cx="54" cy="96" r="2" fill="#94A3B8"/>
+                <circle cx="66" cy="96" r="2" fill="#94A3B8"/>
+                <!-- 首元のネッカチーフ（青） -->
+                <path d="M48 75L60 83L72 75L66 72L60 76L54 72Z" fill="#38BDF8" stroke="#0369A1" stroke-width="2" stroke-linejoin="round"/>
+                <!-- 顔 -->
+                <circle cx="60" cy="54" r="20" fill="#FFEDD5" stroke="#78350F" stroke-width="3"/>
+                <!-- 短め茶髪 -->
+                <path d="M40 50C40 36 50 34 60 34C70 34 80 36 80 50C75 43 68 42 60 44C52 42 45 43 40 50Z" fill="#92400E" stroke="#451A03" stroke-width="2.5" stroke-linejoin="round"/>
+                <!-- 爽やか笑顔 -->
+                <circle cx="52" cy="55" r="2.8" fill="#451A03"/>
+                <circle cx="68" cy="55" r="2.8" fill="#451A03"/>
+                <path d="M55 62C57 65 63 65 65 62" stroke="#78350F" stroke-width="2.2" stroke-linecap="round"/>
+                <!-- ふわふわコック帽 -->
+                <path d="M43 36C36 30 38 18 48 18C52 12 68 12 72 18C82 18 84 30 77 36H43Z" fill="#FFFFFF" stroke="#475569" stroke-width="3" stroke-linejoin="round"/>
+                <rect x="44" y="32" width="32" height="6" rx="2" fill="#F1F5F9" stroke="#475569" stroke-width="2.5"/>
+                <!-- ミニ泡立て器 -->
+                <path d="M92 88L98 72" stroke="#64748B" stroke-width="3" stroke-linecap="round"/>
+                <ellipse cx="101" cy="64" rx="5" ry="9" transform="rotate(20 101 64)" stroke="#94A3B8" stroke-width="2"/>
+            </svg>
+        </div>
+
+        <!-- 4. 右中段：シスター -->
+        <div class="absolute top-[52%] -right-2 sm:right-4 w-24 h-24 sm:w-28 sm:h-28 opacity-75 illust-float" style="--rot: 8deg;">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- ヴェール（後ろ） -->
+                <path d="M34 46C34 26 46 18 60 18C74 18 86 26 86 46L92 86H28L34 46Z" fill="#1E293B" stroke="#0F172A" stroke-width="3" stroke-linejoin="round"/>
+                <!-- 修道服（体） -->
+                <path d="M40 76L33 105H87L80 76H40Z" fill="#1E293B" stroke="#0F172A" stroke-width="3" stroke-linejoin="round"/>
+                <!-- 白い大きな襟 -->
+                <path d="M42 75L60 88L78 75L70 72H50L42 75Z" fill="#FFFFFF" stroke="#475569" stroke-width="2.5" stroke-linejoin="round"/>
+                <!-- ロザリオ（金の十字架） -->
+                <path d="M60 86V98M55 90H65" stroke="#FACC15" stroke-width="3" stroke-linecap="round"/>
+                <!-- 顔 -->
+                <circle cx="60" cy="53" r="19" fill="#FFF7ED" stroke="#334155" stroke-width="2.5"/>
+                <!-- ヴェールの白い縁取り -->
+                <path d="M41 48C41 33 50 27 60 27C70 27 79 33 79 48" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+                <!-- 優しい垂れ目＆微笑み -->
+                <path d="M48 53Q51 50 54 53" stroke="#334155" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M66 53Q69 50 72 53" stroke="#334155" stroke-width="2.5" stroke-linecap="round"/>
+                <ellipse cx="47" cy="58" rx="3" ry="1.8" fill="#FBCFE8"/>
+                <ellipse cx="73" cy="58" rx="3" ry="1.8" fill="#FBCFE8"/>
+                <path d="M57 61Q60 63.5 63 61" stroke="#334155" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <!-- 5. 左下：狼 -->
+        <div class="absolute bottom-6 left-2 sm:left-8 w-24 h-24 sm:w-32 sm:h-32 opacity-80 illust-float" style="--rot: -5deg;">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- もふもふの大きな狼しっぽ -->
+                <path d="M74 86C94 82 106 66 98 54C90 48 80 58 76 70" fill="#64748B" stroke="#1E293B" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M98 54C94 52 90 55 88 59L95 62C98 60 99 57 98 54Z" fill="#F1F5F9"/>
+                <!-- 体（グレー） -->
+                <ellipse cx="58" cy="83" rx="20" ry="17" fill="#64748B" stroke="#1E293B" stroke-width="3"/>
+                <!-- 首まわりのもふもふ毛 -->
+                <path d="M42 68L48 76L54 71L60 77L66 71L72 76L76 68" fill="#F1F5F9" stroke="#1E293B" stroke-width="2.5" stroke-linejoin="round"/>
+                <!-- 尖った狼の耳 -->
+                <path d="M36 44L32 18L51 33Z" fill="#64748B" stroke="#1E293B" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M80 44L84 18L65 33Z" fill="#64748B" stroke="#1E293B" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M38 40L36 25L47 34Z" fill="#CBD5E1"/>
+                <path d="M78 40L80 25L69 34Z" fill="#CBD5E1"/>
+                <!-- 頭 -->
+                <ellipse cx="58" cy="50" rx="24" ry="20" fill="#64748B" stroke="#1E293B" stroke-width="3"/>
+                <!-- 口元の白い模様 -->
+                <path d="M38 54C42 46 52 46 58 50C64 46 74 46 78 54C78 63 68 68 58 68C48 68 38 63 38 54Z" fill="#F8FAFC"/>
+                <!-- キリッとした黄色の瞳 -->
+                <circle cx="47" cy="48" r="3.5" fill="#FACC15" stroke="#1E293B" stroke-width="1.5"/>
+                <circle cx="69" cy="48" r="3.5" fill="#FACC15" stroke="#1E293B" stroke-width="1.5"/>
+                <circle cx="47" cy="48" r="1.5" fill="#0F172A"/>
+                <circle cx="69" cy="48" r="1.5" fill="#0F172A"/>
+                <!-- 鼻＆ギザ歯ニカッ笑い -->
+                <ellipse cx="58" cy="54" rx="3" ry="2" fill="#0F172A"/>
+                <path d="M49 59Q58 65 67 59" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round"/>
+                <path d="M51 60L53 64L55 60.5M61 60.5L63 64L65 60" fill="#FFFFFF" stroke="#1E293B" stroke-width="1.2"/>
+            </svg>
+        </div>
+
+    </div>
+
+    <!-- ヘッダー -->
+    <header class="bg-white/85 backdrop-blur-md sticky top-0 z-30 border-b border-pink-100 shadow-sm">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-iriam-pink to-iriam-purple flex items-center justify-center text-white shadow-md shadow-pink-200">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-extrabold bg-gradient-to-r from-iriam-pink to-iriam-purple bg-clip-text text-transparent">
+                        IRIAM ガチャ計算機
+                    </h1>
+                    <p class="text-[11px] sm:text-xs text-slate-500 font-medium">
+                        100pt ＝ <span class="text-iriam-pink font-bold">11回</span> ／ 10pt ＝ <span class="text-iriam-blue font-bold">1回</span>
+                    </p>
+                </div>
+            </div>
+            <button onclick="openSettingsModal()" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition flex items-center gap-1.5 text-xs font-bold" title="レート設定">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">レート設定</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 pt-6 space-y-6 relative z-10">
+
+        <!-- クイック計算＆追加カード -->
+        <section class="bg-white/95 backdrop-blur-sm rounded-3xl p-5 sm:p-6 shadow-xl shadow-pink-100/50 border border-pink-100">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-bold text-slate-700 flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-5 h-5 text-iriam-pink"></i>
+                    ポイント計算 ＆ リスナー登録
+                </h2>
+                <span id="rateBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-iriam-lightPink text-iriam-pink">
+                    100pt→11回 / 10pt→1回
+                </span>
+            </div>
+
+            <!-- 入力フォーム -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-4">
+                <!-- リスナー名 -->
+                <div class="sm:col-span-5">
+                    <label class="block text-xs font-bold text-slate-500 mb-1 ml-1">リスナー名（任意）</label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="listenerName" placeholder="例：〇〇さん" 
+                            class="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-iriam-pink/40 focus:border-iriam-pink transition">
+                    </div>
+                </div>
+
+                <!-- ポイント入力 -->
+                <div class="sm:col-span-7">
+                    <label class="block text-xs font-bold text-slate-500 mb-1 ml-1">投げられたポイント (pt)</label>
+                    <div class="relative flex items-center">
+                        <input type="number" id="pointInput" inputmode="numeric" min="0" step="10" placeholder="0" 
+                            oninput="calculatePreview()"
+                            class="w-full pl-4 pr-20 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xl font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-iriam-pink/40 focus:border-iriam-pink transition">
+                        <span class="absolute right-11 text-sm font-bold text-slate-400">pt</span>
+                        <button onclick="clearInput()" class="absolute right-2.5 p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/70 transition" title="クリア">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- よく使うギフト加算ボタン -->
+            <div class="mb-5">
+                <p class="text-[11px] font-bold text-slate-400 mb-2 ml-1">ワンタップ加算（IRIAM主要ギフトpt）</p>
+                <div class="flex flex-wrap gap-1.5 sm:gap-2">
+                    <button onclick="addPoints(10)" class="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-200 text-xs font-bold transition active:scale-95">
+                        +10pt <span class="opacity-75 text-[10px]">(しらす等)</span>
+                    </button>
+                    <button onclick="addPoints(50)" class="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-200 text-xs font-bold transition active:scale-95">
+                        +50pt
+                    </button>
+                    <button onclick="addPoints(100)" class="px-3 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-iriam-pink border border-pink-200 text-xs font-bold transition active:scale-95">
+                        +100pt <span class="opacity-75 text-[10px]">(11回!)</span>
+                    </button>
+                    <button onclick="addPoints(300)" class="px-3 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-iriam-pink border border-pink-200 text-xs font-bold transition active:scale-95">
+                        +300pt
+                    </button>
+                    <button onclick="addPoints(500)" class="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-iriam-purple border border-purple-200 text-xs font-bold transition active:scale-95">
+                        +500pt
+                    </button>
+                    <button onclick="addPoints(1000)" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 text-xs font-bold transition active:scale-95">
+                        +1,000pt <span class="opacity-75 text-[10px]">(しらすまん等)</span>
+                    </button>
+                    <button onclick="addPoints(3000)" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 text-xs font-bold transition active:scale-95">
+                        +3,000pt
+                    </button>
+                </div>
+            </div>
+
+            <!-- 計算結果プレビューパネル -->
+            <div class="bg-gradient-to-r from-iriam-lightPink/80 via-purple-50 to-iriam-lightBlue/80 rounded-2xl p-4 sm:p-5 border border-pink-200/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-center sm:text-left">
+                    <div class="text-xs font-bold text-slate-500 mb-0.5">回せるガチャ回数</div>
+                    <div class="flex items-baseline justify-center sm:justify-start gap-1.5">
+                        <span id="previewSpins" class="text-4xl sm:text-5xl font-extrabold text-iriam-pink tracking-tight">0</span>
+                        <span class="text-base font-extrabold text-slate-700">回</span>
+                    </div>
+                    <!-- 内訳表示 -->
+                    <div id="previewBreakdown" class="text-xs text-slate-600 font-medium mt-1">
+                        100pt束 × 0回 ＋ 10pt単発 × 0回（端数 0pt）
+                    </div>
+                </div>
+
+                <!-- リストに追加ボタン -->
+                <button onclick="addToQueue()" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-iriam-pink to-iriam-purple hover:opacity-95 text-white font-bold text-sm shadow-lg shadow-pink-300/50 transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <i data-lucide="list-plus" class="w-5 h-5"></i>
+                    <span>待機リストに追加</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 待機リスト・消化管理セクション -->
+        <section class="bg-white/95 backdrop-blur-sm rounded-3xl p-5 sm:p-6 shadow-xl shadow-slate-200/50 border border-slate-100">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-700 flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5 text-iriam-blue"></i>
+                        ガチャ待機リスト ＆ 消化管理
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">配信中に回した分をカウントして管理できます</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="copySummary()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        結果をコピー
+                    </button>
+                    <button onclick="confirmClearAll()" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition flex items-center gap-1.5">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        全削除
+                    </button>
+                </div>
+            </div>
+
+            <!-- 全体サマリーバー -->
+            <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
+                <div class="bg-slate-50 rounded-2xl p-3 text-center border border-slate-100">
+                    <div class="text-[11px] font-bold text-slate-400">累計ポイント</div>
+                    <div class="text-sm sm:text-lg font-extrabold text-slate-700 mt-0.5"><span id="totalPointsStat">0</span> <span class="text-xs">pt</span></div>
+                </div>
+                <div class="bg-pink-50/70 rounded-2xl p-3 text-center border border-pink-100">
+                    <div class="text-[11px] font-bold text-iriam-pink">残り未消化回数</div>
+                    <div class="text-sm sm:text-lg font-extrabold text-iriam-pink mt-0.5"><span id="remainingSpinsStat">0</span> <span class="text-xs">回</span></div>
+                </div>
+                <div class="bg-sky-50/70 rounded-2xl p-3 text-center border border-sky-100">
+                    <div class="text-[11px] font-bold text-iriam-blue">消化済み / 合計</div>
+                    <div class="text-sm sm:text-lg font-extrabold text-iriam-blue mt-0.5"><span id="doneSpinsStat">0</span> / <span id="totalSpinsStat">0</span></div>
+                </div>
+            </div>
+
+            <!-- リスト本体 -->
+            <div id="queueList" class="space-y-3">
+                <!-- JavaScriptで動的に挿入 -->
+            </div>
+
+            <!-- 空の状態 -->
+            <div id="emptyState" class="text-center py-10 px-4">
+                <div class="w-14 h-14 rounded-full bg-slate-100 text-slate-300 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="gift" class="w-7 h-7"></i>
+                </div>
+                <p class="text-sm font-bold text-slate-500">まだリストにデータがありません</p>
+                <p class="text-xs text-slate-400 mt-1">上のフォームからポイントを入力して「待機リストに追加」を押すと、リスナーごとの残り回数を管理できます！</p>
+            </div>
+        </section>
+
+        <!-- 早見表セクション（折りたたみ可能） -->
+        <section class="bg-white/95 backdrop-blur-sm rounded-3xl p-5 shadow-md border border-slate-100">
+            <button onclick="toggleCheatSheet()" class="w-full flex items-center justify-between text-left">
+                <span class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <i data-lucide="table" class="w-4 h-4 text-iriam-purple"></i>
+                    ポイント別・ガチャ回数早見表
+                </span>
+                <i id="cheatSheetIcon" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-200"></i>
+            </button>
+            <div id="cheatSheetBody" class="hidden mt-4 pt-4 border-t border-slate-100">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" id="cheatSheetGrid">
+                    <!-- JSで自動生成 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 使い方 ＆ 注意書きセクション -->
+        <section class="bg-white/95 backdrop-blur-sm rounded-3xl p-5 sm:p-6 shadow-md border border-pink-100 space-y-5">
+            <h2 class="text-base font-extrabold text-slate-700 flex items-center gap-2">
+                <i data-lucide="book-open" class="w-5 h-5 text-iriam-pink"></i>
+                使い方 ＆ ガチャ企画の注意書き
+            </h2>
+
+            <!-- 使い方ステップ -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div class="bg-pink-50/60 rounded-2xl p-3.5 border border-pink-100">
+                    <div class="font-extrabold text-iriam-pink mb-1 flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-iriam-pink text-white inline-flex items-center justify-center text-[11px]">1</span>
+                        ポイントを入力
+                    </div>
+                    <p class="text-slate-600 leading-relaxed">
+                        リスナー名と投げられたギフトの合計ptを入力（またはボタンをタップ）すると、自動で回数が計算されます。
+                    </p>
+                </div>
+                <div class="bg-purple-50/60 rounded-2xl p-3.5 border border-purple-100">
+                    <div class="font-extrabold text-iriam-purple mb-1 flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-iriam-purple text-white inline-flex items-center justify-center text-[11px]">2</span>
+                        待機リストへ登録
+                    </div>
+                    <p class="text-slate-600 leading-relaxed">
+                        「待機リストに追加」を押すと、一人ずつの残り回数を管理できます。追加ギフトは「追いpt」で上乗せ可能です。
+                    </p>
+                </div>
+                <div class="bg-sky-50/60 rounded-2xl p-3.5 border border-sky-100">
+                    <div class="font-extrabold text-iriam-blue mb-1 flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-iriam-blue text-white inline-flex items-center justify-center text-[11px]">3</span>
+                        回した分を消化
+                    </div>
+                    <p class="text-slate-600 leading-relaxed">
+                        ルーレットやガチャを回したら「+1回消化」「+10回」を押してカウント！配信後は「結果をコピー」で控えを残せます。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 注意書き・ルール枠 -->
+            <div class="bg-amber-50/80 rounded-2xl p-4 border border-amber-200/80 text-xs text-slate-700 space-y-2">
+                <div class="font-extrabold text-amber-700 flex items-center gap-1.5">
+                    <i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>
+                    ご確認・注意事項
+                </div>
+                <ul class="list-disc list-inside space-y-1.5 text-slate-600 leading-relaxed">
+                    <li><span class="font-bold text-slate-700">100ptごとのまとめ計算：</span>100pt単位で11回（1回分お得）、残りの端数が10ptごとに1回として計算されます。（例：150pt ＝ 11回＋5回 ＝ 計16回）</li>
+                    <li><span class="font-bold text-slate-700">10pt未満の端数について：</span>1〜9ptの端数は回数に含まれません。同枠内での合算（追いギフト）を行う場合は、各リスナーカードの「追いpt」ボタンをご活用ください。</li>
+                    <li><span class="font-bold text-slate-700">データの保存先：</span>入力したリストやレート設定はお使いのブラウザ内（端末）に自動保存されます。ブラウザの履歴・キャッシュ消去を行うとリセットされるためご注意ください。</li>
+                    <li><span class="font-bold text-slate-700">非公式ツール：</span>本アプリはIRIAMライバー向けの個人制作サポートツールです。IRIAM運営公式のシステムとは連動しておりません。</li>
+                </ul>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- カスタムトースト通知 -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 flex items-center gap-2">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toastMessage">通知メッセージ</span>
+    </div>
+
+    <!-- レート設定モーダル -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl pop-in">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-iriam-pink"></i>
+                    ガチャレート設定
+                </h3>
+                <button onclick="closeSettingsModal()" class="p-1.5 rounded-full hover:bg-slate-100 text-slate-400">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">
+                企画に合わせてポイントごとの回転数を変更できます（初期値：100ptで11回、10ptで1回）。
+            </p>
+            <div class="space-y-4">
+                <div class="p-3.5 rounded-2xl bg-pink-50/70 border border-pink-100">
+                    <label class="block text-xs font-bold text-iriam-pink mb-2">まとめ投げボーナス設定（大口）</label>
+                    <div class="flex items-center gap-2 text-sm font-bold">
+                        <input type="number" id="settingBulkPt" value="100" min="1" class="w-24 px-3 py-2 rounded-xl border border-pink-200 bg-white text-center">
+                        <span>pt で</span>
+                        <input type="number" id="settingBulkSpins" value="11" min="1" class="w-20 px-3 py-2 rounded-xl border border-pink-200 bg-white text-center">
+                        <span>回</span>
+                    </div>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-100">
+                    <label class="block text-xs font-bold text-iriam-blue mb-2">通常単発設定（小口）</label>
+                    <div class="flex items-center gap-2 text-sm font-bold">
+                        <input type="number" id="settingUnitPt" value="10" min="1" class="w-24 px-3 py-2 rounded-xl border border-sky-200 bg-white text-center">
+                        <span>pt で</span>
+                        <input type="number" id="settingUnitSpins" value="1" min="1" class="w-20 px-3 py-2 rounded-xl border border-sky-200 bg-white text-center">
+                        <span>回</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-between gap-2 mt-6">
+                <button onclick="resetSettings()" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition">
+                    初期値に戻す
+                </button>
+                <button onclick="saveSettings()" class="px-6 py-2.5 rounded-xl bg-iriam-pink text-white text-xs font-bold shadow-md shadow-pink-200 hover:opacity-95 transition">
+                    設定を保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全削除確認モーダル -->
+    <div id="confirmModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl pop-in text-center">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-slate-800 mb-1">リストをすべて削除しますか？</h3>
+            <p class="text-xs text-slate-500 mb-5">登録されているリスナーのガチャ履歴がすべて消去されます。</p>
+            <div class="flex gap-2">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                    キャンセル
+                </button>
+                <button onclick="executeClearAll()" class="flex-1 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition">
+                    すべて削除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 状態管理 ---
+        let config = {
+            bulkPt: 100,
+            bulkSpins: 11,
+            unitPt: 10,
+            unitSpins: 1
+        };
+
+        let queue = [];
+
+        // --- 初期化 ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromStorage();
+            lucide.createIcons();
+            updateRateDisplay();
+            calculatePreview();
+            renderQueue();
+            renderCheatSheet();
+        });
+
+        // ローカルストレージから読み込み
+        function loadFromStorage() {
+            try {
+                const savedConfig = localStorage.getItem('iriam_gacha_config');
+                if (savedConfig) config = JSON.parse(savedConfig);
+
+                const savedQueue = localStorage.getItem('iriam_gacha_queue');
+                if (savedQueue) queue = JSON.parse(savedQueue);
+            } catch (e) {
+                console.error('Storage load error:', e);
+            }
+        }
+
+        // ローカルストレージへ保存
+        function saveToStorage() {
+            try {
+                localStorage.setItem('iriam_gacha_config', JSON.stringify(config));
+                localStorage.setItem('iriam_gacha_queue', JSON.stringify(queue));
+            } catch (e) {
+                console.error('Storage save error:', e);
+            }
+        }
+
+        // --- コア計算ロジック ---
+        function calcGachaSpins(points) {
+            const pts = Math.max(0, Math.floor(Number(points) || 0));
+            const bulkCount = Math.floor(pts / config.bulkPt);
+            const remainderAfterBulk = pts % config.bulkPt;
+            const unitCount = Math.floor(remainderAfterBulk / config.unitPt);
+            const unusedPt = remainderAfterBulk % config.unitPt;
+
+            const totalSpins = (bulkCount * config.bulkSpins) + (unitCount * config.unitSpins);
+
+            return {
+                points: pts,
+                bulkCount,
+                unitCount,
+                unusedPt,
+                totalSpins
+            };
+        }
+
+        // --- UI操作関数 ---
+        function addPoints(amount) {
+            const input = document.getElementById('pointInput');
+            const current = parseInt(input.value, 10) || 0;
+            input.value = current + amount;
+            calculatePreview();
+        }
+
+        function clearInput() {
+            document.getElementById('pointInput').value = '';
+            calculatePreview();
+        }
+
+        function calculatePreview() {
+            const rawVal = document.getElementById('pointInput').value;
+            const res = calcGachaSpins(rawVal);
+
+            document.getElementById('previewSpins').textContent = res.totalSpins.toLocaleString();
+            document.getElementById('previewBreakdown').textContent = 
+                `${config.bulkPt}pt束 × ${res.bulkCount}回 ＋ ${config.unitPt}pt単発 × ${res.unitCount}回（端数 ${res.unusedPt}pt）`;
+        }
+
+        // リストに追加
+        function addToQueue() {
+            const nameInput = document.getElementById('listenerName');
+            const pointInput = document.getElementById('pointInput');
+            const points = parseInt(pointInput.value, 10) || 0;
+
+            if (points <= 0) {
+                showToast('ポイントを入力してください！');
+                pointInput.focus();
+                return;
+            }
+
+            const res = calcGachaSpins(points);
+            if (res.totalSpins <= 0) {
+                showToast(`${config.unitPt}pt以上でガチャが回せます！`);
+                return;
+            }
+
+            const name = nameInput.value.trim() || `リスナー #${queue.length + 1}`;
+
+            const newItem = {
+                id: Date.now().toString(),
+                name: name,
+                points: res.points,
+                totalSpins: res.totalSpins,
+                doneSpins: 0,
+                breakdown: `${config.bulkPt}pt×${res.bulkCount} / ${config.unitPt}pt×${res.unitCount}`,
+                createdAt: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            queue.unshift(newItem);
+            saveToStorage();
+            renderQueue();
+
+            // 入力リセット
+            nameInput.value = '';
+            pointInput.value = '';
+            calculatePreview();
+            showToast(`${name}さんのガチャ（${res.totalSpins}回）を追加しました！`);
+        }
+
+        // 回数の消化操作（+1, +10, 完了, リセット）
+        function updateDoneSpins(id, delta) {
+            const item = queue.find(i => i.id === id);
+            if (!item) return;
+
+            if (delta === 'ALL') {
+                item.doneSpins = item.totalSpins;
+            } else if (delta === 'RESET') {
+                item.doneSpins = 0;
+            } else {
+                item.doneSpins = Math.min(item.totalSpins, Math.max(0, item.doneSpins + delta));
+            }
+
+            saveToStorage();
+            renderQueue();
+        }
+
+        // リスナーへの追加ポイント加算（追いギフト対応）
+        function addExtraPointsToItem(id, extraPt) {
+            const item = queue.find(i => i.id === id);
+            if (!item) return;
+
+            item.points += extraPt;
+            const res = calcGachaSpins(item.points);
+            item.totalSpins = res.totalSpins;
+            item.breakdown = `${config.bulkPt}pt×${res.bulkCount} / ${config.unitPt}pt×${res.unitCount}`;
+
+            saveToStorage();
+            renderQueue();
+            showToast(`${item.name}さんに +${extraPt}pt 追加しました！`);
+        }
+
+        // 個別削除
+        function deleteItem(id) {
+            queue = queue.filter(i => i.id !== id);
+            saveToStorage();
+            renderQueue();
+            showToast('削除しました');
+        }
+
+        // リスト描画
+        function renderQueue() {
+            const listEl = document.getElementById('queueList');
+            const emptyEl = document.getElementById('emptyState');
+
+            // 統計更新
+            let totalPts = 0;
+            let totalSpins = 0;
+            let doneSpins = 0;
+
+            queue.forEach(item => {
+                totalPts += item.points;
+                totalSpins += item.totalSpins;
+                doneSpins += item.doneSpins;
+            });
+
+            const remainingSpins = totalSpins - doneSpins;
+
+            document.getElementById('totalPointsStat').textContent = totalPts.toLocaleString();
+            document.getElementById('remainingSpinsStat').textContent = remainingSpins.toLocaleString();
+            document.getElementById('doneSpinsStat').textContent = doneSpins.toLocaleString();
+            document.getElementById('totalSpinsStat').textContent = totalSpins.toLocaleString();
+
+            if (queue.length === 0) {
+                listEl.innerHTML = '';
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+
+            emptyEl.classList.add('hidden');
+
+            listEl.innerHTML = queue.map(item => {
+                const remaining = item.totalSpins - item.doneSpins;
+                const isCompleted = remaining === 0;
+                const progressPercent = Math.round((item.doneSpins / item.totalSpins) * 100);
+
+                return `
+                <div class="pop-in rounded-2xl p-4 border transition-all ${isCompleted ? 'bg-slate-50/80 border-slate-200 opacity-75' : 'bg-white border-pink-200/80 shadow-sm'}">
+                    <div class="flex flex-wrap items-start justify-between gap-2 mb-2.5">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-extrabold text-sm sm:text-base ${isCompleted ? 'line-through text-slate-500' : 'text-slate-800'}">
+                                    ${escapeHtml(item.name)}
+                                </span>
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                    ${item.points.toLocaleString()} pt
+                                </span>
+                                ${isCompleted ? '<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">完了!</span>' : ''}
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">
+                                登録 ${item.createdAt} ｜ 内訳: ${item.breakdown}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <div class="text-right">
+                                <span class="text-[11px] font-bold text-slate-400 block">残り回数</span>
+                                <span class="text-xl font-extrabold ${isCompleted ? 'text-slate-400' : 'text-iriam-pink'}">
+                                    ${remaining}
+                                </span>
+                                <span class="text-xs font-bold text-slate-500">/ ${item.totalSpins}回</span>
+                            </div>
+                            <button onclick="deleteItem('${item.id}')" class="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg transition" title="削除">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- プログレスバー -->
+                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
+                        <div class="h-full transition-all duration-300 ${isCompleted ? 'bg-emerald-400' : 'bg-gradient-to-r from-iriam-pink to-iriam-purple'}" style="width: ${progressPercent}%"></div>
+                    </div>
+
+                    <!-- 操作ボタン群 -->
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="updateDoneSpins('${item.id}', -1)" ${item.doneSpins <= 0 ? 'disabled' : ''} 
+                                class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 text-xs font-bold transition">
+                                -1
+                            </button>
+                            <button onclick="updateDoneSpins('${item.id}', 1)" ${isCompleted ? 'disabled' : ''} 
+                                class="px-3.5 py-1.5 rounded-xl bg-iriam-pink hover:opacity-90 disabled:opacity-40 text-white text-xs font-bold shadow-sm transition active:scale-95">
+                                +1回消化
+                            </button>
+                            ${remaining >= 10 ? `
+                            <button onclick="updateDoneSpins('${item.id}', 10)" 
+                                class="px-3 py-1.5 rounded-xl bg-iriam-purple hover:opacity-90 text-white text-xs font-bold shadow-sm transition active:scale-95">
+                                +10回
+                            </button>` : ''}
+                            ${!isCompleted ? `
+                            <button onclick="updateDoneSpins('${item.id}', 'ALL')" 
+                                class="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 text-xs font-bold transition">
+                                全て消化
+                            </button>` : `
+                            <button onclick="updateDoneSpins('${item.id}', 'RESET')" 
+                                class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition">
+                                未消化に戻す
+                            </button>`}
+                        </div>
+
+                        <!-- 追いギフトクイック追加 -->
+                        <div class="flex items-center gap-1 text-[11px]">
+                            <span class="text-slate-400 font-bold mr-0.5">追いpt:</span>
+                            <button onclick="addExtraPointsToItem('${item.id}', 10)" class="px-2 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-600 font-bold transition">+10</button>
+                            <button onclick="addExtraPointsToItem('${item.id}', 100)" class="px-2 py-1 rounded-lg bg-pink-50 hover:bg-pink-100 text-iriam-pink font-bold transition">+100</button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // --- 早見表の生成 ---
+        function renderCheatSheet() {
+            const samplePoints = [10, 20, 30, 50, 100, 110, 150, 200, 300, 500, 1000, 3000];
+            const grid = document.getElementById('cheatSheetGrid');
+            grid.innerHTML = samplePoints.map(pt => {
+                const res = calcGachaSpins(pt);
+                return `
+                <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100 flex items-center justify-between">
+                    <span class="font-bold text-slate-600">${pt.toLocaleString()}pt</span>
+                    <span class="font-extrabold text-iriam-pink">${res.totalSpins}回</span>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function toggleCheatSheet() {
+            const body = document.getElementById('cheatSheetBody');
+            const icon = document.getElementById('cheatSheetIcon');
+            body.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        }
+
+        // --- 設定モーダル関連 ---
+        function openSettingsModal() {
+            document.getElementById('settingBulkPt').value = config.bulkPt;
+            document.getElementById('settingBulkSpins').value = config.bulkSpins;
+            document.getElementById('settingUnitPt').value = config.unitPt;
+            document.getElementById('settingUnitSpins').value = config.unitSpins;
+            document.getElementById('settingsModal').classList.remove('hidden');
+            document.getElementById('settingsModal').classList.add('flex');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+            document.getElementById('settingsModal').classList.remove('flex');
+        }
+
+        function saveSettings() {
+            const bPt = parseInt(document.getElementById('settingBulkPt').value, 10);
+            const bSp = parseInt(document.getElementById('settingBulkSpins').value, 10);
+            const uPt = parseInt(document.getElementById('settingUnitPt').value, 10);
+            const uSp = parseInt(document.getElementById('settingUnitSpins').value, 10);
+
+            if (bPt > 0 && bSp > 0 && uPt > 0 && uSp > 0) {
+                config = { bulkPt: bPt, bulkSpins: bSp, unitPt: uPt, unitSpins: uSp };
+                saveToStorage();
+                updateRateDisplay();
+                calculatePreview();
+                renderCheatSheet();
+                closeSettingsModal();
+                showToast('レート設定を保存しました！');
+            } else {
+                showToast('1以上の数値を入力してください');
+            }
+        }
+
+        function resetSettings() {
+            document.getElementById('settingBulkPt').value = 100;
+            document.getElementById('settingBulkSpins').value = 11;
+            document.getElementById('settingUnitPt').value = 10;
+            document.getElementById('settingUnitSpins').value = 1;
+        }
+
+        function updateRateDisplay() {
+            document.getElementById('rateBadge').textContent = 
+                `${config.bulkPt}pt→${config.bulkSpins}回 / ${config.unitPt}pt→${config.unitSpins}回`;
+        }
+
+        // --- 全削除確認モーダル ---
+        function confirmClearAll() {
+            if (queue.length === 0) return;
+            document.getElementById('confirmModal').classList.remove('hidden');
+            document.getElementById('confirmModal').classList.add('flex');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            document.getElementById('confirmModal').classList.remove('flex');
+        }
+
+        function executeClearAll() {
+            queue = [];
+            saveToStorage();
+            renderQueue();
+            closeConfirmModal();
+            showToast('リストをすべて削除しました');
+        }
+
+        // --- クリップボードコピー ---
+        function copySummary() {
+            if (queue.length === 0) {
+                showToast('コピーするデータがありません');
+                return;
+            }
+            const lines = queue.map(item => 
+                `・${item.name}: ${item.points}pt（計${item.totalSpins}回 / 消化${item.doneSpins}回）`
+            );
+            const text = `【IRIAM ガチャ集計】\n${lines.join('\n')}`;
+
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('集計結果をクリップボードにコピーしました！');
+            } catch (err) {
+                showToast('コピーに失敗しました');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // --- ユーティリティ ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2500);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+    </script>
+</body>
+</html>
